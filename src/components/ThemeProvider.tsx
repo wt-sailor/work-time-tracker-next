@@ -41,6 +41,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     const saved = localStorage.getItem("wtt-theme") as Theme | null;
     const initial: Theme =
       saved && ["light", "dark", "system"].includes(saved) ? saved : "system";
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setThemeState(initial);
 
     // Apply immediately (the inline script in layout.tsx already did this,
@@ -54,6 +55,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     if (!mounted) return;
 
     const resolved = applyTheme(theme);
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setResolvedTheme(resolved);
 
     // Listen for system theme changes when in "system" mode

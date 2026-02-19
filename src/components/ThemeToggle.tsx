@@ -21,7 +21,7 @@ export default function ThemeToggle() {
           title={mode.label}
         >
           <span className="theme-btn-icon">{mode.icon}</span>
-          <span className="theme-btn-label">{mode.label}</span>
+          {/* <span className="theme-btn-label">{mode.label}</span> */}
         </button>
       ))}
     </div>

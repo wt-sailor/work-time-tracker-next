@@ -48,6 +48,8 @@ interface CalendarEvent {
   textColor: string;
   extendedProps: {
     log: WorkLog;
+    type: "work" | "break";
+    isActive?: boolean;
   };
 }
 
@@ -56,9 +58,29 @@ export default function CalendarPage() {
   const router = useRouter();
   const [logs, setLogs] = useState<WorkLog[]>([]);
   const [events, setEvents] = useState<CalendarEvent[]>([]);
-  const [selectedLog, setSelectedLog] = useState<WorkLog | null>(null);
+  const [modalOpen, setModalOpen] = useState(false);
+  const [selectedEvent, setSelectedEvent] = useState<{
+    id: string;
+    title: string;
+    type: "work" | "break";
+    isActive?: boolean;
+    start?: Date;
+    end?: Date;
+    previousLogId?: string;
+    nextLogId?: string;
+  } | null>(null);
   const [dataLoading, setDataLoading] = useState(false);
   const fetchedRef = useRef(false);
+
+  const [currentTime, setCurrentTime] = useState(new Date());
+
+  // Update current time every minute to keep active bars moving
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentTime(new Date());
+    }, 60000); // 1 minute
+    return () => clearInterval(interval);
+  }, []);
 
   useEffect(() => {
     if (status === "unauthenticated") {
@@ -75,32 +97,8 @@ export default function CalendarPage() {
       }
       const res = await fetch(url);
       if (res.ok) {
-        const data = await res.json();
-        setLogs(data);
-
-        const calendarEvents: CalendarEvent[] = data.map((log: WorkLog) => {
-          const hours = log.totalHours
-            ? `${log.totalHours.toFixed(1)}h`
-            : "Active";
-          const isActive = log.status === "active";
-
-          return {
-            id: log.id,
-            title: `${hours}${isActive ? " 🟢" : ""}`,
-            start: log.punchIn,
-            end: log.punchOut || undefined,
-            backgroundColor: isActive
-              ? "rgba(0, 230, 118, 0.15)"
-              : "rgba(138, 43, 226, 0.15)",
-            borderColor: isActive
-              ? "rgba(0, 230, 118, 0.5)"
-              : "rgba(138, 43, 226, 0.4)",
-            textColor: isActive ? "#00e676" : "#c4a1e8",
-            extendedProps: { log },
-          };
-        });
-
-        setEvents(calendarEvents);
+        const events = await res.json();
+        setEvents(events);
       }
     } catch (err) {
       console.error("Failed to fetch logs:", err);
@@ -108,6 +106,29 @@ export default function CalendarPage() {
       setDataLoading(false);
     }
   }, []);
+
+  // Update "active" event end time every minute
+  useEffect(() => {
+    if (!events.some(e => e.extendedProps.isActive)) return;
+
+    const now = currentTime;
+    
+    setEvents(prevEvents => prevEvents.map(event => {
+      if (event.extendedProps.isActive) {
+        // Calculate new title duration
+        const start = new Date(event.start as string).getTime();
+        const durationMs = now.getTime() - start;
+        const hoursDisplay = (durationMs / 3600000).toFixed(1);
+        
+        return {
+          ...event,
+          end: now.toISOString(),
+          title: `Work: ${hoursDisplay}h 🟢`
+        };
+      }
+      return event;
+    }));
+  }, [currentTime]); // currentTime updates every minute
 
   useEffect(() => {
     if (session && !fetchedRef.current) {
@@ -118,7 +139,32 @@ export default function CalendarPage() {
 
   const handleEventClick = (info: EventClickArg) => {
     const log = info.event.extendedProps.log as WorkLog;
-    setSelectedLog(log);
+    const type = info.event.extendedProps.type as "work" | "break";
+    const isActive = info.event.extendedProps.isActive as boolean | undefined;
+    
+    // For breaks, we need prev/next IDs
+    const previousLogId = info.event.extendedProps.previousLogId as string | undefined;
+    const nextLogId = info.event.extendedProps.nextLogId as string | undefined;
+
+    setSelectedEvent({ 
+      id: log.id, 
+      title: info.event.title, 
+      type, 
+      isActive,
+      start: info.event.start || undefined,
+      end: info.event.end || undefined,
+      previousLogId,
+      nextLogId
+    });
+    setModalOpen(true);
+  };
+  
+  const formatTime = (date?: Date) => {
+    if (!date) return "Active";
+    return date.toLocaleTimeString("en-IN", {
+      hour: "2-digit",
+      minute: "2-digit",
+    });
   };
 
   const handleDatesSet = (dateInfo: { startStr: string; endStr: string }) => {
@@ -132,16 +178,50 @@ export default function CalendarPage() {
     });
   };
 
-  const deleteLog = async (id: string) => {
-    if (!confirm("Delete this work log?")) return;
-    try {
-      const res = await fetch(`/api/worklog/${id}`, { method: "DELETE" });
-      if (res.ok) {
-        setSelectedLog(null);
-        fetchLogs();
+  const handleDelete = async () => {
+    if (!selectedEvent) return;
+
+    // Special handling for Break deletion (Merge)
+    if (selectedEvent.type === "break" && selectedEvent.previousLogId && selectedEvent.nextLogId) {
+       if (confirm("This will merge the two work sessions, effectively deleting the break. Continue?")) {
+        try {
+          const res = await fetch("/api/worklog/merge", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              previousLogId: selectedEvent.previousLogId,
+              nextLogId: selectedEvent.nextLogId
+            })
+          });
+          if (res.ok) {
+            setModalOpen(false);
+            fetchLogs(); // Refresh calendar
+          } else {
+            alert("Failed to merge sessions");
+          }
+        } catch (err) {
+          console.error("Merge error:", err);
+          alert("Error merging sessions");
+        }
+       }
+       return;
+    }
+
+    // Standard Work Log Deletion
+    if (confirm("Are you sure you want to delete this log?")) {
+      try {
+        const res = await fetch(`/api/worklog/${selectedEvent.id}`, {
+          method: "DELETE",
+        });
+        if (res.ok) {
+          setModalOpen(false);
+          fetchLogs();
+        } else {
+          alert("Failed to delete log");
+        }
+      } catch (err) {
+        console.error("Failed to delete log:", err);
       }
-    } catch (err) {
-      console.error("Failed to delete:", err);
     }
   };
 
@@ -165,6 +245,9 @@ export default function CalendarPage() {
     0
   );
   const totalDaysWorked = Object.keys(dailyStats).length;
+
+  const modalTitle = selectedEvent?.type === "break" ? "Break Details" : "Work Log Details";
+  const deleteBtnText = selectedEvent?.type === "break" ? "Delete Break (Merge)" : "Delete Log";
 
   // Only block render while auth is resolving
   if (status === "loading") {
@@ -205,19 +288,19 @@ export default function CalendarPage() {
           </div>
         </div>
 
-        <div className="calendar-wrapper glass-card">
+        <div className="glass-card calendar-wrapper animate-in delay-1">
           {dataLoading && (
-            <div className="calendar-data-loading">
-              <div className="loader-spinner" style={{ width: 24, height: 24, borderWidth: 2 }} />
+            <div className="loading-overlay">
+              <div className="spinner"></div>
             </div>
           )}
           <FullCalendar
             plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
-            initialView="dayGridMonth"
+            initialView="timeGridDay"
             headerToolbar={{
               left: "prev,next today",
               center: "title",
-              right: "dayGridMonth,timeGridWeek",
+              right: "dayGridMonth,timeGridWeek,timeGridDay",
             }}
             events={events}
             eventClick={handleEventClick}
@@ -226,73 +309,48 @@ export default function CalendarPage() {
             dayMaxEvents={3}
             eventDisplay="block"
             nowIndicator={true}
+            slotMinTime="06:00:00"
+            slotMaxTime="22:00:00"
+            allDaySlot={false}
           />
         </div>
 
         {/* Day Detail Modal */}
-        {selectedLog && (
-          <div className="modal-overlay" onClick={() => setSelectedLog(null)}>
+        {modalOpen && selectedEvent && (
+          <div className="modal-overlay" onClick={() => setModalOpen(false)}>
             <div
               className="modal-card glass-card animate-in"
               onClick={(e) => e.stopPropagation()}
             >
               <div className="modal-header">
-                <h2>Work Session</h2>
+                <h2>{modalTitle}</h2>
                 <button
                   className="modal-close"
-                  onClick={() => setSelectedLog(null)}
+                  onClick={() => setModalOpen(false)}
                 >
                   ✕
                 </button>
               </div>
 
               <div className="modal-body">
-                <div className="detail-row">
-                  <span className="detail-label">Date</span>
-                  <span className="detail-value mono">
-                    {new Date(selectedLog.date).toLocaleDateString("en-IN", {
-                      dateStyle: "long",
-                    })}
-                  </span>
+                <p><strong>{selectedEvent.title}</strong></p>
+                <div className="time-details" style={{ marginTop: "10px", marginBottom: "15px", fontSize: "0.9em", color: "#ccc" }}>
+                  <div className="detail-row">
+                    <span className="label">Start:</span> <span className="value mono">{formatTime(selectedEvent.start)}</span>
+                  </div>
+                  <div className="detail-row">
+                    <span className="label">End:</span> <span className="value mono">{formatTime(selectedEvent.end)}</span>
+                  </div>
                 </div>
-                <div className="detail-row">
-                  <span className="detail-label">Punch In</span>
-                  <span className="detail-value mono">
-                    {formatDateTime(selectedLog.punchIn)}
-                  </span>
-                </div>
-                <div className="detail-row">
-                  <span className="detail-label">Punch Out</span>
-                  <span className="detail-value mono">
-                    {selectedLog.punchOut
-                      ? formatDateTime(selectedLog.punchOut)
-                      : "Still active"}
-                  </span>
-                </div>
-                <div className="detail-row">
-                  <span className="detail-label">Total Hours</span>
-                  <span className="detail-value mono highlight">
-                    {selectedLog.totalHours
-                      ? `${selectedLog.totalHours.toFixed(2)}h`
-                      : "In progress"}
-                  </span>
-                </div>
-                <div className="detail-row">
-                  <span className="detail-label">Status</span>
-                  <span
-                    className={`status-badge-small ${selectedLog.status === "active" ? "active" : "completed"}`}
-                  >
-                    {selectedLog.status === "active" ? "Active" : "Completed"}
-                  </span>
-                </div>
+                {selectedEvent.isActive && <p className="status-active">Currently Active</p>}
               </div>
 
               <div className="modal-actions">
-                <button
+                <button 
+                  onClick={handleDelete} 
                   className="btn-danger-small"
-                  onClick={() => deleteLog(selectedLog.id)}
                 >
-                  Delete Log
+                  {deleteBtnText}
                 </button>
               </div>
             </div>

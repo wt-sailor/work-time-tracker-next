@@ -237,19 +237,33 @@ export function useWorkTimer() {
         []
     );
 
-    const punchToggle = useCallback(() => {
+    const stateRef = useRef(state);
+    useEffect(() => { stateRef.current = state; }, [state]);
+
+    const punchToggle = useCallback((manualTimeMs?: number) => {
         const nowMs = Date.now();
+        const punchTime = manualTimeMs || nowMs;
+
+        if (punchTime > nowMs) {
+            return { success: false, error: "Cannot punch in the future." };
+        }
+
+        const prevState = stateRef.current;
+        if (prevState.lastStatusChange && punchTime <= prevState.lastStatusChange) {
+            return { success: false, error: "New punch time must be after the last action." };
+        }
 
         setState((prev) => {
             let newState: TimerState;
+            const effectiveNow = punchTime;
 
             if (prev.status === "working") {
-                const sessionDuration = nowMs - (prev.lastStatusChange || nowMs);
+                const sessionDuration = effectiveNow - (prev.lastStatusChange || effectiveNow);
                 const newAccWork = prev.accumulatedWorkMs + sessionDuration;
 
                 sendLogToBackend(
                     "punch-out",
-                    new Date(nowMs).toISOString(),
+                    new Date(effectiveNow).toISOString(),
                     formatShortTime(newAccWork)
                 );
 
@@ -257,25 +271,25 @@ export function useWorkTimer() {
                     ...prev,
                     accumulatedWorkMs: newAccWork,
                     status: "break" as TimerStatus,
-                    lastStatusChange: nowMs,
+                    lastStatusChange: effectiveNow,
                     logs: [
-                        { type: "Punch Out (Break)", time: nowMs },
+                        { type: "Punch Out (Break)", time: effectiveNow },
                         ...prev.logs,
                     ].slice(0, 50),
                 };
             } else if (prev.status === "break") {
-                const sessionDuration = nowMs - (prev.lastStatusChange || nowMs);
+                const sessionDuration = effectiveNow - (prev.lastStatusChange || effectiveNow);
                 const newAccBreak = prev.accumulatedBreakMs + sessionDuration;
 
-                sendLogToBackend("punch-in", new Date(nowMs).toISOString());
+                sendLogToBackend("punch-in", new Date(effectiveNow).toISOString());
 
                 newState = {
                     ...prev,
                     accumulatedBreakMs: newAccBreak,
                     status: "working" as TimerStatus,
-                    lastStatusChange: nowMs,
+                    lastStatusChange: effectiveNow,
                     logs: [
-                        { type: "Punch In (Work)", time: nowMs },
+                        { type: "Punch In (Work)", time: effectiveNow },
                         ...prev.logs,
                     ].slice(0, 50),
                 };
@@ -288,6 +302,8 @@ export function useWorkTimer() {
             setLastSynced(new Date());
             return newState;
         });
+        
+        return { success: true };
     }, []);
 
     const resetDay = useCallback(() => {
