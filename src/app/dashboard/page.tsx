@@ -40,7 +40,50 @@ export default function DashboardPage() {
     const h = String(now.getHours()).padStart(2, "0");
     const m = String(now.getMinutes()).padStart(2, "0");
     setEntryTime(`${h}:${m}`);
+    setEntryTime(`${h}:${m}`);
   }, []);
+
+  const [manualMode, setManualMode] = useState(false);
+  const [manualTime, setManualTime] = useState("");
+  const [manualError, setManualError] = useState("");
+
+  // Initialize manual time with current time
+  useEffect(() => {
+    const now = new Date();
+    const h = String(now.getHours()).padStart(2, "0");
+    const m = String(now.getMinutes()).padStart(2, "0");
+    setManualTime(`${h}:${m}`);
+  }, []);
+
+  const handlePunch = (toggleFn: (time?: number) => { success: boolean; error?: string }) => {
+    let punchTimeMs: number | undefined;
+
+    if (manualMode) {
+      if (!manualTime) {
+        setManualError("Please select a time");
+        return;
+      }
+      const [h, m] = manualTime.split(":").map(Number);
+      const date = new Date();
+      date.setHours(h, m, 0, 0);
+      punchTimeMs = date.getTime();
+      
+      // If the time is essentially "now" (same minute), might want to use Date.now() 
+      // to avoid small drift, but explicit manual time usually means "this exact minute".
+      // Let's stick to the generated timestamp.
+    }
+
+    const result = toggleFn(punchTimeMs);
+    
+    if (result && !result.success && result.error) {
+      setManualError(result.error);
+      // Clear error after 3 seconds
+      setTimeout(() => setManualError(""), 3000);
+    } else {
+        setManualError("");
+        setManualMode(false); // Reset mode after successful punch
+    }
+  };
 
   if (status === "loading" || !isLoaded) {
     return (
@@ -155,6 +198,21 @@ export default function DashboardPage() {
               </span>
             </div>
 
+            {!isOvertime && (
+              <div className="leave-time-display">
+                <span className="leave-time-label">You can leave at </span>
+                <span
+                  className="leave-time-value mono"
+                  title={`Early leave: ${new Date(Date.now() + remainingWork - 29 * 60000).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`}
+                >
+                  {new Date(Date.now() + remainingWork).toLocaleTimeString([], {
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  })}
+                </span>
+              </div>
+            )}
+
             {/* Sync Status */}
             <div className="sync-status">
               <span className="sync-dot" />
@@ -189,12 +247,42 @@ export default function DashboardPage() {
               </div>
             </div>
 
+            {/* Manual Entry Toggle */}
+            <div className="manual-entry-section">
+              <label className="manual-toggle-label">
+                <input
+                  type="checkbox"
+                  checked={manualMode}
+                  onChange={(e) => setManualMode(e.target.checked)}
+                />
+                Enable Manual Entry
+              </label>
+              
+              {manualMode && (
+                <div className="manual-input-group">
+                  <input
+                    type="time"
+                    value={manualTime}
+                    onChange={(e) => setManualTime(e.target.value)}
+                    className="manual-time-input"
+                  />
+                  {manualError && <span className="error-text">{manualError}</span>}
+                </div>
+              )}
+            </div>
+
             {state.status === "working" ? (
-              <button onClick={punchToggle} className="btn-punch-out btn-full">
+              <button 
+                onClick={() => handlePunch(punchToggle)} 
+                className="btn-punch-out btn-full"
+              >
                 ⏸ Punch Out
               </button>
             ) : (
-              <button onClick={punchToggle} className="btn-punch-in btn-full">
+              <button 
+                onClick={() => handlePunch(punchToggle)} 
+                className="btn-punch-in btn-full"
+              >
                 ▶ Punch In
               </button>
             )}
