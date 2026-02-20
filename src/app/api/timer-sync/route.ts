@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
+import { getTimerState } from "@/lib/api-services";
 
 // GET — Retrieve saved timer state
 export async function GET() {
@@ -10,26 +11,9 @@ export async function GET() {
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
 
-        const timerState = await prisma.timerState.findUnique({
-            where: { userId: session.user.id },
-        });
-
-        if (!timerState) {
-            return NextResponse.json(null);
-        }
-
-        // Convert BigInt to number for JSON serialization
-        return NextResponse.json({
-            ...timerState,
-            startTime: timerState.startTime ? Number(timerState.startTime) : null,
-            targetWorkMs: Number(timerState.targetWorkMs),
-            targetBreakMs: Number(timerState.targetBreakMs),
-            accumulatedWorkMs: Number(timerState.accumulatedWorkMs),
-            accumulatedBreakMs: Number(timerState.accumulatedBreakMs),
-            lastStatusChange: timerState.lastStatusChange
-                ? Number(timerState.lastStatusChange)
-                : null,
-        });
+        const timerState = await getTimerState(session.user.id);
+        
+        return NextResponse.json(timerState); 
     } catch (error) {
         console.error("Get timer state error:", error);
         return NextResponse.json(
