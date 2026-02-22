@@ -3,6 +3,7 @@ import { Poppins, JetBrains_Mono } from "next/font/google";
 import SessionProvider from "@/components/SessionProvider";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import "./globals.css";
+import Navbar from "@/components/Navbar";
 
 const poppins = Poppins({
   subsets: ["latin"],
@@ -54,7 +55,12 @@ export default function RootLayout({
       </head>
       <body>
         <SessionProvider>
-          <ThemeProvider>{children}</ThemeProvider>
+          <ThemeProvider>
+            <div className="app-shell">
+              <Navbar />
+              {children}
+            </div>
+          </ThemeProvider>
         </SessionProvider>
       </body>
     </html>

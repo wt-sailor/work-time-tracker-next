@@ -920,12 +920,31 @@ input::placeholder {
   color: var(--text-main);
 }
 
+.fc-unavailable-day {
+  background: var(--slate-bg);
+  position: relative;
+}
+
+.fc-unavailable-day::after {
+  content: "work-off";
+  position: absolute;
+  bottom: 0px;
+  right: 4px;
+  font-size: 11px;
+  color: var(--danger);
+  opacity: 0.8;
+}
+
 .calendar-wrapper .fc .fc-col-header-cell {
   padding: 10px 0;
   font-size: 0.8rem;
   color: var(--text-muted);
   text-transform: uppercase;
   letter-spacing: 1px;
+}
+
+.calendar-wrapper .fc .fc-daygrid-day-frame {
+  min-height: 145px;
 }
 
 .calendar-wrapper .fc .fc-daygrid-day-number {
@@ -1224,7 +1243,7 @@ input::placeholder {
 
 .calendar-skeleton-cell {
   background: var(--card-bg);
-  height: 120px;
+  height: 145px;
 }
 
 .calendar-data-loading {

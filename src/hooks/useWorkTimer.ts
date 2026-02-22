@@ -119,16 +119,17 @@ async function clearTimerStateFromBackend() {
     }
 }
 
-export function useWorkTimer() {
-    const [state, setState] = useState<TimerState>(defaultState);
+export function useWorkTimer(initialState: TimerState | null = null) {
+    const [state, setState] = useState<TimerState>(initialState || defaultState);
     const [currentTime, setCurrentTime] = useState(Date.now());
     const [lastSynced, setLastSynced] = useState<Date | null>(null);
-    const [isLoaded, setIsLoaded] = useState(false);
+    const [isLoaded, setIsLoaded] = useState(!!initialState);
     const intervalRef = useRef<NodeJS.Timeout | null>(null);
     const syncIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
     // Load state: try backend first, then localStorage fallback
     useEffect(() => {
+        if (initialState) return;
         async function loadState() {
             const backendState = await loadTimerStateFromBackend();
             if (backendState) {
@@ -147,7 +148,7 @@ export function useWorkTimer() {
             setIsLoaded(true);
         }
         loadState();
-    }, []);
+    }, [initialState]);
 
     // Save state to localStorage on change
     useEffect(() => {
