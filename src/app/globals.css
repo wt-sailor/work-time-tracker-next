@@ -813,7 +813,7 @@ input::placeholder {
   color: var(--danger) !important;
 }
 
-/* ─── Activity Log ─── */
+/* ─── Activity / Sessions Table ─── */
 .activity-section {
   border-top: 1px solid var(--card-border);
   padding-top: 16px;
@@ -827,6 +827,7 @@ input::placeholder {
   letter-spacing: 1px;
 }
 
+/* Legacy list (kept for compatibility) */
 .activity-list {
   list-style: none;
   max-height: 160px;
@@ -851,6 +852,76 @@ input::placeholder {
   color: var(--text-muted);
   font-size: 0.85rem;
 }
+
+/* ─── Session table ─── */
+.session-table-wrapper {
+  overflow-x: auto;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--card-border);
+}
+
+.session-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+}
+
+.session-table thead tr {
+  background: var(--slate-bg);
+}
+
+.session-table th {
+  padding: 8px 14px;
+  text-align: left;
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  border-bottom: 1px solid var(--card-border);
+  white-space: nowrap;
+}
+
+.session-table td {
+  padding: 9px 14px;
+  color: var(--text-secondary);
+  border-bottom: 1px solid var(--card-border);
+}
+
+.session-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.session-table tbody tr:hover {
+  background: var(--accent-subtle);
+}
+
+.session-row-active td {
+  background: var(--success-bg);
+}
+
+.session-row-active:hover td {
+  background: var(--success-bg) !important;
+}
+
+.session-num {
+  color: var(--text-dim);
+  font-size: 0.75rem;
+  width: 28px;
+}
+
+.session-ongoing {
+  color: var(--success);
+  font-size: 0.8rem;
+  font-weight: 600;
+  font-style: italic;
+}
+
+.session-duration {
+  color: var(--text-muted);
+  font-size: 0.82rem;
+}
+
 
 /* ═══════════════════════════════════════════════
    CALENDAR PAGE
@@ -1370,4 +1441,193 @@ input::placeholder {
   to {
     opacity: 1;
   }
+}
+
+/* ═══════════════════════════════════════════════
+   PASSWORD VISIBILITY TOGGLE
+   ═══════════════════════════════════════════════ */
+.password-field-wrapper {
+  position: relative;
+  display: block;
+  width: 100%;
+}
+
+.password-field-wrapper input[type="password"],
+.password-field-wrapper input[type="text"] {
+  padding-right: 46px;
+}
+
+.password-eye-btn {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  line-height: 0;
+  transition:
+    color var(--transition),
+    background var(--transition);
+  z-index: 2;
+}
+
+.password-eye-btn:hover {
+  color: var(--accent-primary);
+  background: var(--accent-subtle);
+}
+
+
+/* ═══════════════════════════════════════════════
+   ENHANCED MODAL STYLES (Break / Late Punch-In)
+   ═══════════════════════════════════════════════ */
+.modal-card {
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius-xl);
+  padding: 32px;
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  box-shadow: var(--shadow-card), var(--shadow-glow);
+  animation: fadeInUp 0.35s ease-out;
+}
+
+.modal-card-sm {
+  max-width: 340px;
+}
+
+.modal-header {
+  text-align: center;
+  margin-bottom: 28px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.modal-icon {
+  font-size: 2.2rem;
+  line-height: 1;
+}
+
+.modal-header h2 {
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: var(--text-main);
+}
+
+.modal-subtitle {
+  color: var(--text-muted);
+  font-size: 0.85rem;
+  margin-top: 2px;
+}
+
+.modal-form {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* Two time pickers side-by-side */
+.modal-time-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 12px;
+}
+
+.modal-time-row .form-group {
+  flex: 1;
+}
+
+.modal-time-arrow {
+  font-size: 1.2rem;
+  color: var(--text-muted);
+  padding-bottom: 14px;
+  flex-shrink: 0;
+}
+
+.modal-footer {
+  display: flex;
+  gap: 12px;
+  padding-top: 4px;
+}
+
+.modal-footer>* {
+  flex: 1;
+}
+
+/* ═══════════════════════════════════════════════
+   EXTRA DASHBOARD BUTTONS
+   ═══════════════════════════════════════════════ */
+
+/* Container for the punch action area */
+.punch-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* Secondary / Cancel button */
+.btn-secondary {
+  background: var(--slate-bg);
+  border: 1px solid var(--card-border);
+  color: var(--text-secondary);
+  padding: 12px 24px;
+  border-radius: var(--radius-md);
+  font-size: 0.95rem;
+  font-weight: 600;
+  font-family: var(--font-heading);
+  cursor: pointer;
+  transition: all var(--transition);
+}
+
+.btn-secondary:hover {
+  border-color: var(--slate);
+  color: var(--text-main);
+  background: var(--slate-bg);
+}
+
+/* "Add Break Entry" button */
+.btn-break {
+  background: transparent;
+  border: 1.5px dashed var(--accent-primary);
+  color: var(--accent-primary);
+  padding: 13px 24px;
+  border-radius: var(--radius-md);
+  font-size: 0.95rem;
+  font-weight: 600;
+  font-family: var(--font-heading);
+  cursor: pointer;
+  transition: all var(--transition);
+}
+
+.btn-break:hover {
+  background: var(--accent-subtle);
+  border-style: solid;
+}
+
+/* "Late Punch-In" / "I Already Resumed" button */
+.btn-late-punchin {
+  background: transparent;
+  border: 1.5px dashed var(--slate);
+  color: var(--slate);
+  padding: 13px 24px;
+  border-radius: var(--radius-md);
+  font-size: 0.95rem;
+  font-weight: 600;
+  font-family: var(--font-heading);
+  cursor: pointer;
+  transition: all var(--transition);
+}
+
+.btn-late-punchin:hover {
+  background: var(--slate-bg);
+  border-style: solid;
+  color: var(--text-main);
 }

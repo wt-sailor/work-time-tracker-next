@@ -303,7 +303,7 @@ export function useWorkTimer(initialState: TimerState | null = null) {
             setLastSynced(new Date());
             return newState;
         });
-        
+
         return { success: true };
     }, []);
 
@@ -312,6 +312,59 @@ export function useWorkTimer(initialState: TimerState | null = null) {
         setState(defaultState);
         clearTimerStateFromBackend();
     }, []);
+
+    /**
+     * Insert a historical break without sequential ordering constraint.
+     * Works by directly adjusting accumulated work/break ms, so the user
+     * can add e.g. an 11:00-11:05 break even after already recording 13:00-14:00.
+     */
+    const addHistoricalBreak = useCallback(
+        (punchOutMs: number, punchInMs: number): { success: boolean; error?: string } => {
+            const nowMs = Date.now();
+
+            if (punchOutMs >= punchInMs) {
+                return { success: false, error: "Punch-In time must be after Punch-Out time." };
+            }
+            if (punchOutMs >= nowMs) {
+                return { success: false, error: "Punch-Out time cannot be in the future." };
+            }
+            if (punchInMs > nowMs) {
+                return { success: false, error: "Punch-In time cannot be in the future." };
+            }
+
+            const breakDuration = punchInMs - punchOutMs;
+
+            setState((prev) => {
+                // Subtract the break window from accumulated work time
+                // (that time was actually break, not work)
+                const newAccWork = Math.max(0, prev.accumulatedWorkMs - breakDuration);
+                const newAccBreak = prev.accumulatedBreakMs + breakDuration;
+
+                // Merge new log entries and re-sort newest-first
+                const newLogs = [
+                    { type: "Punch Out (Break)", time: punchOutMs },
+                    { type: "Punch In (Work)", time: punchInMs },
+                    ...prev.logs,
+                ]
+                    .sort((a, b) => b.time - a.time)
+                    .slice(0, 50);
+
+                const newState: TimerState = {
+                    ...prev,
+                    accumulatedWorkMs: newAccWork,
+                    accumulatedBreakMs: newAccBreak,
+                    logs: newLogs,
+                };
+
+                syncTimerStateToBackend(newState);
+                return newState;
+            });
+
+            setLastSynced(new Date());
+            return { success: true };
+        },
+        []
+    );
 
     return {
         state,
@@ -325,6 +378,7 @@ export function useWorkTimer(initialState: TimerState | null = null) {
         isLoaded,
         startDay,
         punchToggle,
+        addHistoricalBreak,
         resetDay,
         formatTime,
         formatShortTime,
