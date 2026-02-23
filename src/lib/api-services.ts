@@ -33,6 +33,24 @@ export async function getTimerState(
   }
 }
 
+export async function getUserProfile(userId: string) {
+  try {
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        timeFormat: true,
+        workHours: true,
+        workMinutes: true,
+        breakMinutes: true,
+      }
+    });
+    return user;
+  } catch (error) {
+    console.error("Get user profile error:", error);
+    return null;
+  }
+}
+
 export async function getWorkLogs(
   userId: string,
   startDate?: string,

@@ -15,6 +15,10 @@ model User {
   password             String
   isAdmin              Boolean     @default(false)
   notificationsEnabled Boolean     @default(true)
+  timeFormat           String      @default("12h")
+  workHours            Int         @default(8)
+  workMinutes          Int         @default(0)
+  breakMinutes         Int         @default(60)
   workLogs             WorkLog[]
   notifications        Notification[]
   timerState           TimerState?

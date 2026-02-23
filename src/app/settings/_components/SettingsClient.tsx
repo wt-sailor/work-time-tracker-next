@@ -19,6 +19,10 @@ export default function SettingsClient() {
 
   const [name, setName] = useState("");
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
+  const [timeFormat, setTimeFormat] = useState("12h");
+  const [workHours, setWorkHours] = useState(8);
+  const [workMinutes, setWorkMinutes] = useState(0);
+  const [breakMinutes, setBreakMinutes] = useState(60);
 
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
@@ -47,6 +51,10 @@ export default function SettingsClient() {
           const data = await res.json();
           setName(data.name || "");
           setNotificationsEnabled(data.notificationsEnabled ?? true);
+          setTimeFormat(data.timeFormat || "12h");
+          setWorkHours(data.workHours ?? 8);
+          setWorkMinutes(data.workMinutes ?? 0);
+          setBreakMinutes(data.breakMinutes ?? 60);
         }
       } catch (error) {
         console.error("Failed to load profile:", error);
@@ -66,7 +74,14 @@ export default function SettingsClient() {
       const res = await fetch("/api/user/profile", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, notificationsEnabled }),
+        body: JSON.stringify({
+          name,
+          notificationsEnabled,
+          timeFormat,
+          workHours,
+          workMinutes,
+          breakMinutes,
+        }),
       });
 
       if (res.ok) {
@@ -204,6 +219,68 @@ export default function SettingsClient() {
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 placeholder="Enter your name"
+              />
+            </div>
+
+            <div className="form-group">
+              <label>Time Format</label>
+              <div className="radio-group row-radio">
+                <label className="radio-label">
+                  <input
+                    type="radio"
+                    name="timeFormat"
+                    value="12h"
+                    checked={timeFormat === "12h"}
+                    onChange={(e) => setTimeFormat(e.target.value)}
+                  />
+                  <span>12-hour (AM/PM)</span>
+                </label>
+                <label className="radio-label">
+                  <input
+                    type="radio"
+                    name="timeFormat"
+                    value="24h"
+                    checked={timeFormat === "24h"}
+                    onChange={(e) => setTimeFormat(e.target.value)}
+                  />
+                  <span>24-hour</span>
+                </label>
+              </div>
+            </div>
+
+            <div className="form-group">
+              <label>Work Duration</label>
+              <div className="dual-input">
+                <div className="input-half">
+                  <span className="input-label-small">Hours</span>
+                  <input
+                    type="number"
+                    value={workHours}
+                    onChange={(e) => setWorkHours(Number(e.target.value))}
+                    min="0"
+                    max="24"
+                  />
+                </div>
+                <div className="input-half">
+                  <span className="input-label-small">Minutes</span>
+                  <input
+                    type="number"
+                    value={workMinutes}
+                    onChange={(e) => setWorkMinutes(Number(e.target.value))}
+                    min="0"
+                    max="59"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="form-group">
+              <label>Break Time (Minutes)</label>
+              <input
+                type="number"
+                value={breakMinutes}
+                onChange={(e) => setBreakMinutes(Number(e.target.value))}
+                min="0"
               />
             </div>
 

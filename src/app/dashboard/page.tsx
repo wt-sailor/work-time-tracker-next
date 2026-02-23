@@ -1,6 +1,6 @@
 import { auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
-import { getTimerState } from "@/lib/api-services";
+import { getTimerState, getUserProfile } from "@/lib/api-services";
 import DashboardClient from "./_components/DashboardClient";
 
 export default async function DashboardPage() {
@@ -11,6 +11,12 @@ export default async function DashboardPage() {
   }
 
   const timerState = await getTimerState(session.user.id);
+  const userProfile = await getUserProfile(session.user.id);
 
-  return <DashboardClient initialTimerState={timerState} />;
+  return (
+    <DashboardClient 
+      initialTimerState={timerState} 
+      userProfile={userProfile} 
+    />
+  );
 }

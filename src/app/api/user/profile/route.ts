@@ -16,6 +16,10 @@ export async function GET() {
         name: true,
         email: true,
         notificationsEnabled: true,
+        timeFormat: true,
+        workHours: true,
+        workMinutes: true,
+        breakMinutes: true,
       },
     });
 
@@ -41,7 +45,14 @@ export async function PUT(req: Request) {
     }
 
     const body = await req.json();
-    const { name, notificationsEnabled } = body;
+    const {
+      name,
+      notificationsEnabled,
+      timeFormat,
+      workHours,
+      workMinutes,
+      breakMinutes,
+    } = body;
 
     const updatedUser = await prisma.user.update({
       where: { email: session.user.email },
@@ -49,12 +60,20 @@ export async function PUT(req: Request) {
         name: name !== undefined ? name : undefined,
         notificationsEnabled:
           notificationsEnabled !== undefined ? notificationsEnabled : undefined,
+        timeFormat: timeFormat !== undefined ? timeFormat : undefined,
+        workHours: workHours !== undefined ? workHours : undefined,
+        workMinutes: workMinutes !== undefined ? workMinutes : undefined,
+        breakMinutes: breakMinutes !== undefined ? breakMinutes : undefined,
       },
       select: {
         id: true,
         name: true,
         email: true,
         notificationsEnabled: true,
+        timeFormat: true,
+        workHours: true,
+        workMinutes: true,
+        breakMinutes: true,
       },
     });
 
