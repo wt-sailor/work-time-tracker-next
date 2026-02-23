@@ -41,3 +41,22 @@ export async function POST(request: Request) {
     );
   }
 }
+
+export async function DELETE() {
+  const session = await auth();
+
+  if (!session || !session.user || !session.user.isAdmin) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
+  }
+
+  try {
+    await prisma.notification.deleteMany({});
+    return NextResponse.json({ message: "All notifications cleared" }, { status: 200 });
+  } catch (error) {
+    console.error("Failed to clear notifications:", error);
+    return NextResponse.json(
+      { error: "Failed to clear notifications" },
+      { status: 500 },
+    );
+  }
+}

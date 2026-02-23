@@ -238,6 +238,7 @@ function SessionPanel({
             // eslint-disable-next-line react-hooks/purity
             const durationMs = row.punchOut
               ? row.punchOut - row.punchIn
+              // eslint-disable-next-line react-hooks/purity
               : Date.now() - row.punchIn;
             const h = Math.floor(durationMs / 3600000);
             const m = Math.floor((durationMs % 3600000) / 60000);

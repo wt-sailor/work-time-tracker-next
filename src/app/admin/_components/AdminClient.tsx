@@ -258,6 +258,36 @@ function PushNotificationsTab() {
     }
   };
 
+  const handleClearAll = async () => {
+    if (
+      !confirm(
+        "Are you sure you want to clear ALL past announcements for ALL users? This action cannot be undone.",
+      )
+    ) {
+      return;
+    }
+
+    setLoading(true);
+    setStatus({ type: "", text: "" });
+
+    try {
+      const res = await fetch("/api/admin/notifications", {
+        method: "DELETE",
+      });
+
+      if (!res.ok) throw new Error("Failed to clear");
+
+      setStatus({
+        type: "success",
+        text: "All past announcements have been cleared!",
+      });
+    } catch {
+      setStatus({ type: "error", text: "Failed to clear announcements." });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div
       className="glass-card animate-in"
@@ -427,6 +457,38 @@ function PushNotificationsTab() {
           </button>
         </div>
       </form>
+
+      <div
+        style={{
+          marginTop: "40px",
+          paddingTop: "24px",
+          borderTop: "1px solid var(--card-border)",
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+        }}
+      >
+        <div>
+          <h3 style={{ fontSize: "1.1rem", marginBottom: "4px" }}>
+            Danger Zone
+          </h3>
+          <p className="text-muted" style={{ fontSize: "0.85rem" }}>
+            Clear the entire notification history for all users.
+          </p>
+        </div>
+        <button
+          className="btn-secondary"
+          onClick={handleClearAll}
+          disabled={loading}
+          style={{
+            color: "var(--danger)",
+            borderColor: "rgba(229,77,77,0.3)",
+            padding: "10px 20px",
+          }}
+        >
+          {loading ? "Processing..." : "Clear All Announcements"}
+        </button>
+      </div>
     </div>
   );
 }
