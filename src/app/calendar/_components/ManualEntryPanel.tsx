@@ -57,7 +57,10 @@ export default function ManualEntryPanel({ onRefresh }: Props) {
     const newOutH = Math.floor(newOutMin / 60);
     const newOutM = newOutMin % 60;
     const newOutStr = `${String(Math.min(newOutH, 23)).padStart(2, "0")}:${String(newOutM % 60).padStart(2, "0")}`;
-    setSessions([...sessions, { id: genId(), punchIn: newInStr, punchOut: newOutStr }]);
+    setSessions([
+      ...sessions,
+      { id: genId(), punchIn: newInStr, punchOut: newOutStr },
+    ]);
   };
 
   const removeSession = (id: string) => {
@@ -65,8 +68,14 @@ export default function ManualEntryPanel({ onRefresh }: Props) {
     setSessions(sessions.filter((s) => s.id !== id));
   };
 
-  const updateSession = (id: string, field: "punchIn" | "punchOut", value: string) => {
-    setSessions(sessions.map((s) => (s.id === id ? { ...s, [field]: value } : s)));
+  const updateSession = (
+    id: string,
+    field: "punchIn" | "punchOut",
+    value: string,
+  ) => {
+    setSessions(
+      sessions.map((s) => (s.id === id ? { ...s, [field]: value } : s)),
+    );
   };
 
   const summary = useMemo(() => {
@@ -111,7 +120,11 @@ export default function ManualEntryPanel({ onRefresh }: Props) {
         const punchIn = new Date(`${date}T${s.punchIn}:00`);
         const punchOut = new Date(`${date}T${s.punchOut}:00`);
         const totalHours = (punchOut.getTime() - punchIn.getTime()) / 3600000;
-        return { punchIn: punchIn.toISOString(), punchOut: punchOut.toISOString(), totalHours };
+        return {
+          punchIn: punchIn.toISOString(),
+          punchOut: punchOut.toISOString(),
+          totalHours,
+        };
       });
 
       const res = await fetch("/api/worklog", {
@@ -139,13 +152,15 @@ export default function ManualEntryPanel({ onRefresh }: Props) {
   };
 
   return (
-    <div className="manual-entry-panel glass-card animate-in">
+    <div className="manual-entry-panel animate-in">
       {/* Panel Header */}
       <div className="mep-header">
         <div className="mep-header-icon">📋</div>
         <div>
           <h2 className="mep-title">Add Past Day Record</h2>
-          <p className="mep-subtitle">Record previous days&apos; work sessions manually</p>
+          <p className="mep-subtitle">
+            Record previous days&apos; work sessions manually
+          </p>
         </div>
       </div>
 
@@ -175,7 +190,9 @@ export default function ManualEntryPanel({ onRefresh }: Props) {
                   <input
                     type="time"
                     value={session.punchIn}
-                    onChange={(e) => updateSession(session.id, "punchIn", e.target.value)}
+                    onChange={(e) =>
+                      updateSession(session.id, "punchIn", e.target.value)
+                    }
                   />
                 </div>
                 <span className="mep-arrow">→</span>
@@ -184,7 +201,9 @@ export default function ManualEntryPanel({ onRefresh }: Props) {
                   <input
                     type="time"
                     value={session.punchOut}
-                    onChange={(e) => updateSession(session.id, "punchOut", e.target.value)}
+                    onChange={(e) =>
+                      updateSession(session.id, "punchOut", e.target.value)
+                    }
                   />
                 </div>
               </div>
@@ -200,19 +219,22 @@ export default function ManualEntryPanel({ onRefresh }: Props) {
             </div>
 
             {/* Break Indicator Between Sessions */}
-            {i < sessions.length - 1 && (() => {
-              const breakMin =
-                timeToMinutes(sessions[i + 1].punchIn) - timeToMinutes(session.punchOut);
-              return (
-                <div className="mep-break-indicator">
-                  <div className="mep-break-line" />
-                  <span className="mep-break-label">
-                    ☕ Break · {breakMin > 0 ? msToDur(breakMin * 60000) : "⚠ invalid"}
-                  </span>
-                  <div className="mep-break-line" />
-                </div>
-              );
-            })()}
+            {i < sessions.length - 1 &&
+              (() => {
+                const breakMin =
+                  timeToMinutes(sessions[i + 1].punchIn) -
+                  timeToMinutes(session.punchOut);
+                return (
+                  <div className="mep-break-indicator">
+                    <div className="mep-break-line" />
+                    <span className="mep-break-label">
+                      ☕ Break ·{" "}
+                      {breakMin > 0 ? msToDur(breakMin * 60000) : "⚠ invalid"}
+                    </span>
+                    <div className="mep-break-line" />
+                  </div>
+                );
+              })()}
           </div>
         ))}
       </div>

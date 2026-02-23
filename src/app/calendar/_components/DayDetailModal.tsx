@@ -1,6 +1,15 @@
 "use client";
 
 import { useState, useCallback } from "react";
+import {
+  RiBriefcaseLine,
+  RiCupLine,
+  RiCloseLine,
+  RiErrorWarningLine,
+  RiCheckboxCircleLine,
+  RiDeleteBinLine,
+  RiArrowRightLine,
+} from "@remixicon/react";
 
 // ─── Types ─────────────────────────────────────────────────────────────────
 
@@ -57,7 +66,10 @@ interface Props {
 
 function fmtT(iso: string | null | undefined): string {
   if (!iso) return "–";
-  return new Date(iso).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  return new Date(iso).toLocaleTimeString([], {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
 }
 
 function fmtDur(ms: number): string {
@@ -72,9 +84,16 @@ function fmtDur(ms: number): string {
 
 // ─── Component ──────────────────────────────────────────────────────────────
 
-export default function DayDetailModal({ date, events, onClose, onRefresh }: Props) {
+export default function DayDetailModal({
+  date,
+  events,
+  onClose,
+  onRefresh,
+}: Props) {
   const [deletingId, setDeletingId] = useState<string | null>(null);
-  const [pendingDelete, setPendingDelete] = useState<PendingDelete | null>(null);
+  const [pendingDelete, setPendingDelete] = useState<PendingDelete | null>(
+    null,
+  );
   const [errorMsg, setErrorMsg] = useState("");
   const [successMsg, setSuccessMsg] = useState("");
 
@@ -94,7 +113,8 @@ export default function DayDetailModal({ date, events, onClose, onRefresh }: Pro
       end: e.end || null,
       durationMs: Math.max(0, endMs - startMs),
       isActive: e.extendedProps.isActive,
-      logId: e.extendedProps.type === "work" ? e.extendedProps.log.id : undefined,
+      logId:
+        e.extendedProps.type === "work" ? e.extendedProps.log.id : undefined,
       previousLogId: e.extendedProps.previousLogId,
       nextLogId: e.extendedProps.nextLogId,
     };
@@ -114,47 +134,64 @@ export default function DayDetailModal({ date, events, onClose, onRefresh }: Pro
     return { ...item, position };
   });
 
-  const totalWork = timeline.filter((t) => t.type === "work").reduce((s, t) => s + t.durationMs, 0);
-  const totalBreak = timeline.filter((t) => t.type === "break").reduce((s, t) => s + t.durationMs, 0);
+  const totalWork = timeline
+    .filter((t) => t.type === "work")
+    .reduce((s, t) => s + t.durationMs, 0);
+  const totalBreak = timeline
+    .filter((t) => t.type === "break")
+    .reduce((s, t) => s + t.durationMs, 0);
 
   // ── Delete handler ───────────────────────────────────────────
 
-  const executeDelete = useCallback(async (item: TimelineItem) => {
-    setErrorMsg("");
-    setSuccessMsg("");
-    const deletingKey = item.type === "break"
-      ? `break-${item.previousLogId}-${item.nextLogId}`
-      : item.logId!;
-    setDeletingId(deletingKey);
+  const executeDelete = useCallback(
+    async (item: TimelineItem) => {
+      setErrorMsg("");
+      setSuccessMsg("");
+      const deletingKey =
+        item.type === "break"
+          ? `break-${item.previousLogId}-${item.nextLogId}`
+          : item.logId!;
+      setDeletingId(deletingKey);
 
-    try {
-      const body = item.type === "break"
-        ? { action: "delete-break", previousLogId: item.previousLogId, nextLogId: item.nextLogId }
-        : { action: "delete-work", logId: item.logId };
+      try {
+        const body =
+          item.type === "break"
+            ? {
+                action: "delete-break",
+                previousLogId: item.previousLogId,
+                nextLogId: item.nextLogId,
+              }
+            : { action: "delete-work", logId: item.logId };
 
-      const res = await fetch("/api/worklog/delete-session", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
-      });
+        const res = await fetch("/api/worklog/delete-session", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body),
+        });
 
-      if (res.ok) {
-        setSuccessMsg(item.type === "break" ? "Break removed — sessions merged!" : "Session deleted.");
+        if (res.ok) {
+          setSuccessMsg(
+            item.type === "break"
+              ? "Break removed — sessions merged!"
+              : "Session deleted.",
+          );
+          setPendingDelete(null);
+          onRefresh();
+          setTimeout(onClose, 900);
+        } else {
+          const d = await res.json().catch(() => ({}));
+          setErrorMsg(d.error || "Something went wrong. Please try again.");
+          setPendingDelete(null);
+        }
+      } catch {
+        setErrorMsg("Network error. Please check your connection.");
         setPendingDelete(null);
-        onRefresh();
-        setTimeout(onClose, 900);
-      } else {
-        const d = await res.json().catch(() => ({}));
-        setErrorMsg(d.error || "Something went wrong. Please try again.");
-        setPendingDelete(null);
+      } finally {
+        setDeletingId(null);
       }
-    } catch {
-      setErrorMsg("Network error. Please check your connection.");
-      setPendingDelete(null);
-    } finally {
-      setDeletingId(null);
-    }
-  }, [onRefresh, onClose]);
+    },
+    [onRefresh, onClose],
+  );
 
   const handleDeleteClick = (item: TimelineItem) => {
     setErrorMsg("");
@@ -175,19 +212,33 @@ export default function DayDetailModal({ date, events, onClose, onRefresh }: Pro
 
   function getConfirmMessage(item: TimelineItem): string {
     if (item.type === "break") {
-      const prevWork = timeline.find((t) => t.type === "work" && t.logId === item.previousLogId);
-      const nextWork = timeline.find((t) => t.type === "work" && t.logId === item.nextLogId);
+      const prevWork = timeline.find(
+        (t) => t.type === "work" && t.logId === item.previousLogId,
+      );
+      const nextWork = timeline.find(
+        (t) => t.type === "work" && t.logId === item.nextLogId,
+      );
       const prevDur = prevWork ? fmtDur(prevWork.durationMs) : "?";
-      const nextDur = nextWork ? (nextWork.isActive ? "ongoing" : fmtDur(nextWork.durationMs)) : "?";
+      const nextDur = nextWork
+        ? nextWork.isActive
+          ? "ongoing"
+          : fmtDur(nextWork.durationMs)
+        : "?";
       return `Remove this ${fmtDur(item.durationMs)} break and merge the surrounding sessions (${prevDur} + ${nextDur}) into one continuous work block?`;
     }
-    if (item.position === "only") return `Delete the only work session for this day? All data for ${date} will be removed.`;
-    if (item.position === "first") return `Delete the first work session (${fmtDur(item.durationMs)})? The day will start from the next session.`;
-    if (item.position === "last") return item.isActive ? `End and delete the active session? This cannot be undone.` : `Delete the last work session (${fmtDur(item.durationMs)})? The day's records will be trimmed.`;
+    if (item.position === "only")
+      return `Delete the only work session for this day? All data for ${date} will be removed.`;
+    if (item.position === "first")
+      return `Delete the first work session (${fmtDur(item.durationMs)})? The day will start from the next session.`;
+    if (item.position === "last")
+      return item.isActive
+        ? `End and delete the active session? This cannot be undone.`
+        : `Delete the last work session (${fmtDur(item.durationMs)})? The day's records will be trimmed.`;
 
     const itemIdx = timeline.findIndex((t) => t.key === item.key);
     const prevBreak = itemIdx > 0 ? timeline[itemIdx - 1] : null;
-    const nextBreak = itemIdx < timeline.length - 1 ? timeline[itemIdx + 1] : null;
+    const nextBreak =
+      itemIdx < timeline.length - 1 ? timeline[itemIdx + 1] : null;
     const newBreakMs =
       (prevBreak?.type === "break" ? prevBreak.durationMs : 0) +
       item.durationMs +
@@ -217,31 +268,31 @@ export default function DayDetailModal({ date, events, onClose, onRefresh }: Pro
             <div className="day-modal-totals">
               {totalWork > 0 && (
                 <span className="dmt-chip dmt-work">
-                  <i className="ri-briefcase-line" /> {fmtDur(totalWork)} worked
+                  <RiBriefcaseLine size={16} /> {fmtDur(totalWork)} worked
                 </span>
               )}
               {totalBreak > 0 && (
                 <span className="dmt-chip dmt-break">
-                  <i className="ri-cup-line" /> {fmtDur(totalBreak)} break
+                  <RiCupLine size={16} /> {fmtDur(totalBreak)} break
                 </span>
               )}
             </div>
           </div>
           <button className="modal-close" onClick={onClose}>
-            <i className="ri-close-line" />
+            <RiCloseLine size={20} />
           </button>
         </div>
 
         {/* Messages */}
         {errorMsg && (
           <div className="dm-message dm-message-error">
-            <i className="ri-error-warning-line dm-msg-icon" />
+            <RiErrorWarningLine className="dm-msg-icon" size={18} />
             <span>{errorMsg}</span>
           </div>
         )}
         {successMsg && (
           <div className="dm-message dm-message-success">
-            <i className="ri-checkbox-circle-line dm-msg-icon" />
+            <RiCheckboxCircleLine className="dm-msg-icon" size={18} />
             <span>{successMsg}</span>
           </div>
         )}
@@ -250,19 +301,22 @@ export default function DayDetailModal({ date, events, onClose, onRefresh }: Pro
         {pendingDelete && !deletingId && (
           <div className="dm-confirm-box animate-in">
             <div className="dm-confirm-icon">
-              {pendingDelete.item.type === "break"
-                ? <i className="ri-cup-line" />
-                : <i className="ri-briefcase-line" />
-              }
-              <i className="ri-delete-bin-line" style={{ marginLeft: 4 }} />
+              {pendingDelete.item.type === "break" ? (
+                <RiCupLine size={20} />
+              ) : (
+                <RiBriefcaseLine size={20} />
+              )}
+              <RiDeleteBinLine style={{ marginLeft: 4 }} size={20} />
             </div>
-            <p className="dm-confirm-text">{getConfirmMessage(pendingDelete.item)}</p>
+            <p className="dm-confirm-text">
+              {getConfirmMessage(pendingDelete.item)}
+            </p>
             <div className="dm-confirm-actions">
               <button className="dm-btn-cancel" onClick={handleCancel}>
-                <i className="ri-close-line" /> Cancel
+                <RiCloseLine size={16} /> Cancel
               </button>
               <button className="dm-btn-confirm" onClick={handleConfirm}>
-                <i className="ri-delete-bin-line" /> Confirm Delete
+                <RiDeleteBinLine size={16} /> Confirm Delete
               </button>
             </div>
           </div>
@@ -279,7 +333,8 @@ export default function DayDetailModal({ date, events, onClose, onRefresh }: Pro
                   ? `break-${item.previousLogId}-${item.nextLogId}`
                   : item.logId!;
               const isThisDeleting = deletingId === deleteKey;
-              const isPendingThis = pendingDelete?.item.key === item.key && !isThisDeleting;
+              const isPendingThis =
+                pendingDelete?.item.key === item.key && !isThisDeleting;
               const isLast = idx === timeline.length - 1;
 
               return (
@@ -291,7 +346,9 @@ export default function DayDetailModal({ date, events, onClose, onRefresh }: Pro
                     item.isActive ? "timeline-active" : "",
                     isPendingThis ? "timeline-item-pending" : "",
                     isThisDeleting ? "timeline-item-deleting" : "",
-                  ].filter(Boolean).join(" ")}
+                  ]
+                    .filter(Boolean)
+                    .join(" ")}
                 >
                   <div className="timeline-dot-col">
                     <div className="timeline-dot" />
@@ -301,24 +358,35 @@ export default function DayDetailModal({ date, events, onClose, onRefresh }: Pro
                   <div className="timeline-body">
                     <div className="timeline-times mono">
                       <span>{fmtT(item.start)}</span>
-                      <i className="ri-arrow-right-line timeline-arrow" />
+                      <RiArrowRightLine className="timeline-arrow" size={14} />
                       <span>
-                        {item.isActive
-                          ? <span className="session-ongoing">now</span>
-                          : fmtT(item.end)
-                        }
+                        {item.isActive ? (
+                          <span className="session-ongoing">now</span>
+                        ) : (
+                          fmtT(item.end)
+                        )}
                       </span>
                     </div>
                     <div className="timeline-meta-row">
                       <span className={`tl-badge tl-badge-${item.type}`}>
-                        {item.type === "work"
-                          ? <><i className="ri-briefcase-line" /> Work</>
-                          : <><i className="ri-cup-line" /> Break</>
-                        }
+                        {item.type === "work" ? (
+                          <>
+                            <RiBriefcaseLine size={14} /> Work
+                          </>
+                        ) : (
+                          <>
+                            <RiCupLine size={14} /> Break
+                          </>
+                        )}
                       </span>
                       <span className="tl-duration mono">
                         {fmtDur(item.durationMs)}
-                        {item.isActive && <span className="tl-active-dot" title="Active session" />}
+                        {item.isActive && (
+                          <span
+                            className="tl-active-dot"
+                            title="Active session"
+                          />
+                        )}
                       </span>
                     </div>
                     {item.type === "work" && (
@@ -326,15 +394,25 @@ export default function DayDetailModal({ date, events, onClose, onRefresh }: Pro
                         {item.position === "only" && "only session"}
                         {item.position === "first" && "first session"}
                         {item.position === "middle" && "middle session"}
-                        {item.position === "last" && (item.isActive ? "active" : "last session")}
+                        {item.position === "last" &&
+                          (item.isActive ? "active" : "last session")}
                       </div>
                     )}
                   </div>
 
                   {!item.isActive && (
                     <button
-                      className={["tl-delete-btn", isPendingThis ? "tl-delete-btn-pending" : ""].filter(Boolean).join(" ")}
-                      title={item.type === "break" ? "Remove break (merge surrounding sessions)" : "Delete this work session"}
+                      className={[
+                        "tl-delete-btn",
+                        isPendingThis ? "tl-delete-btn-pending" : "",
+                      ]
+                        .filter(Boolean)
+                        .join(" ")}
+                      title={
+                        item.type === "break"
+                          ? "Remove break (merge surrounding sessions)"
+                          : "Delete this work session"
+                      }
                       disabled={!!deletingId}
                       onClick={() => {
                         if (isPendingThis) setPendingDelete(null);
@@ -342,11 +420,14 @@ export default function DayDetailModal({ date, events, onClose, onRefresh }: Pro
                       }}
                     >
                       {isThisDeleting ? (
-                        <span className="spinner" style={{ width: 12, height: 12, borderWidth: 2 }} />
+                        <span
+                          className="spinner"
+                          style={{ width: 12, height: 12, borderWidth: 2 }}
+                        />
                       ) : isPendingThis ? (
-                        <i className="ri-close-line" />
+                        <RiCloseLine size={16} />
                       ) : (
-                        <i className="ri-delete-bin-line" />
+                        <RiDeleteBinLine size={16} />
                       )}
                     </button>
                   )}
@@ -359,7 +440,8 @@ export default function DayDetailModal({ date, events, onClose, onRefresh }: Pro
         {/* Footer hint */}
         {timeline.length > 0 && !pendingDelete && !deletingId && (
           <p className="dm-footer-hint">
-            <i className="ri-delete-bin-line" /> Click the delete icon on any session or break to remove it
+            <RiDeleteBinLine size={14} /> Click the delete icon on any session
+            or break to remove it
           </p>
         )}
       </div>

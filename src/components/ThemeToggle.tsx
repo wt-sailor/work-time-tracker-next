@@ -1,14 +1,31 @@
 "use client";
 
 import { useTheme } from "./ThemeProvider";
+import { RiSunLine, RiMoonClearLine, RiComputerLine } from "@remixicon/react";
 
 export default function ThemeToggle() {
   const { theme, setTheme } = useTheme();
 
-  const modes: Array<{ value: "light" | "dark" | "system"; icon: string; label: string }> = [
-    { value: "light", icon: "☀️", label: "Light" },
-    { value: "dark", icon: "🌙", label: "Dark" },
-    { value: "system", icon: "💻", label: "System" },
+  const modes: Array<{
+    value: "light" | "dark" | "system";
+    icon: React.ReactNode;
+    label: string;
+  }> = [
+    {
+      value: "light",
+      icon: <RiSunLine className="theme-btn-icon" size={16} />,
+      label: "Light",
+    },
+    {
+      value: "dark",
+      icon: <RiMoonClearLine className="theme-btn-icon" size={16} />,
+      label: "Dark",
+    },
+    {
+      value: "system",
+      icon: <RiComputerLine className="theme-btn-icon" size={16} />,
+      label: "System",
+    },
   ];
 
   return (
@@ -20,7 +37,7 @@ export default function ThemeToggle() {
           onClick={() => setTheme(mode.value)}
           title={mode.label}
         >
-          <span className="theme-btn-icon">{mode.icon}</span>
+          {mode.icon}
           {/* <span className="theme-btn-label">{mode.label}</span> */}
         </button>
       ))}

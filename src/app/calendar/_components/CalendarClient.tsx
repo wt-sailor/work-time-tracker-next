@@ -52,6 +52,7 @@ interface CalendarEvent {
 
 interface CalendarClientProps {
   initialEvents: CalendarEvent[];
+  adminUserId?: string;
 }
 
 // ─── Helpers ─────────────────────────────────────────────────
@@ -66,7 +67,10 @@ function msFmt(ms: number): string {
 }
 
 // ─── Main Component ───────────────────────────────────────────
-export default function CalendarClient({ initialEvents }: CalendarClientProps) {
+export default function CalendarClient({
+  initialEvents,
+  adminUserId,
+}: CalendarClientProps) {
   const [logs, setLogs] = useState<WorkLog[]>([]);
   const [events, setEvents] = useState<CalendarEvent[]>(initialEvents);
   const [dataLoading, setDataLoading] = useState(false);
@@ -92,9 +96,10 @@ export default function CalendarClient({ initialEvents }: CalendarClientProps) {
 
   // Update active event end every minute
   useEffect(() => {
-    if (!currentTime || !events.some((e) => e.extendedProps.isActive)) return;
-    setEvents((prev) =>
-      prev.map((event) => {
+    if (!currentTime) return;
+    setEvents((prev) => {
+      if (!prev.some((e) => e.extendedProps.isActive)) return prev;
+      return prev.map((event) => {
         if (!event.extendedProps.isActive) return event;
         const start = new Date(event.start as string).getTime();
         const durationMs = currentTime.getTime() - start;
@@ -103,37 +108,56 @@ export default function CalendarClient({ initialEvents }: CalendarClientProps) {
           end: currentTime.toISOString(),
           title: `Work: ${(durationMs / 3600000).toFixed(1)}h 🟢`,
         };
-      })
-    );
+      });
+    });
   }, [currentTime]);
 
-  const fetchLogs = useCallback(async (startDate?: string, endDate?: string) => {
-    try {
-      setDataLoading(true);
-      let url = "/api/worklog";
-      if (startDate && endDate) url += `?startDate=${startDate}&endDate=${endDate}`;
-      const res = await fetch(url);
-      if (res.ok) {
-        const fetchedEvents: CalendarEvent[] = await res.json();
-        setEvents(fetchedEvents);
-        const extracted = fetchedEvents
-          .filter((e) => e.extendedProps.type === "work")
-          .map((e) => e.extendedProps.log);
-        setLogs(Array.from(new Map(extracted.map((l) => [l.id, l])).values()));
+  const fetchLogs = useCallback(
+    async (startDate?: string, endDate?: string) => {
+      try {
+        setDataLoading(true);
+        let url = adminUserId
+          ? `/api/admin/users/${adminUserId}/logs`
+          : `/api/worklog`;
+
+        const queryParams = [];
+        if (startDate) queryParams.push(`startDate=${startDate}`);
+        if (endDate) queryParams.push(`endDate=${endDate}`);
+
+        if (queryParams.length > 0) {
+          url += `?${queryParams.join("&")}`;
+        }
+
+        const res = await fetch(url);
+        if (res.ok) {
+          const fetchedEvents: CalendarEvent[] = await res.json();
+          setEvents(fetchedEvents);
+          const extracted = fetchedEvents
+            .filter((e) => e.extendedProps.type === "work")
+            .map((e) => e.extendedProps.log);
+          setLogs(
+            Array.from(new Map(extracted.map((l) => [l.id, l])).values()),
+          );
+        }
+      } catch (err) {
+        console.error("Failed to fetch logs:", err);
+      } finally {
+        setDataLoading(false);
       }
-    } catch (err) {
-      console.error("Failed to fetch logs:", err);
-    } finally {
-      setDataLoading(false);
-    }
-  }, []);
+    },
+    [adminUserId],
+  );
 
   const handleDatesSet = (dateInfo: { startStr: string; endStr: string }) => {
-    if (!fetchedRef.current) { fetchedRef.current = true; return; }
+    if (!fetchedRef.current) {
+      fetchedRef.current = true;
+      return;
+    }
     fetchLogs(dateInfo.startStr, dateInfo.endStr);
   };
 
-  const handleDateClick = (arg: { dateStr: string }) => setDayModalDate(arg.dateStr);
+  const handleDateClick = (arg: { dateStr: string }) =>
+    setDayModalDate(arg.dateStr);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const handleEventClick = (info: any) => {
     const dateStr = (info.event.startStr as string).split("T")[0];
@@ -142,13 +166,18 @@ export default function CalendarClient({ initialEvents }: CalendarClientProps) {
 
   // ── Daily summary map: date → { workMs, breakMs, hasActive } ─
   const dailySummaryMap = useMemo(() => {
-    const map: Record<string, { workMs: number; breakMs: number; hasActive: boolean }> = {};
+    const map: Record<
+      string,
+      { workMs: number; breakMs: number; hasActive: boolean }
+    > = {};
     events.forEach((e) => {
       const dateStr = e.start.split("T")[0];
-      if (!map[dateStr]) map[dateStr] = { workMs: 0, breakMs: 0, hasActive: false };
+      if (!map[dateStr])
+        map[dateStr] = { workMs: 0, breakMs: 0, hasActive: false };
       const dur = Math.max(
         0,
-        (e.end ? new Date(e.end).getTime() : Date.now()) - new Date(e.start).getTime()
+        (e.end ? new Date(e.end).getTime() : Date.now()) -
+          new Date(e.start).getTime(),
       );
       if (e.extendedProps.type === "work") {
         map[dateStr].workMs += dur;
@@ -161,7 +190,11 @@ export default function CalendarClient({ initialEvents }: CalendarClientProps) {
   }, [events]);
 
   // ── Month stats ──────────────────────────────────────────────
-  const [stats, setStats] = useState({ totalMonthHours: 0, totalDaysWorked: 0, avgHoursPerDay: 0 });
+  const [stats, setStats] = useState({
+    totalMonthHours: 0,
+    totalDaysWorked: 0,
+    avgHoursPerDay: 0,
+  });
   useEffect(() => {
     const daily: Record<string, number> = {};
     logs.forEach((log) => {
@@ -187,30 +220,41 @@ export default function CalendarClient({ initialEvents }: CalendarClientProps) {
         <div className="calendar-header-right">
           <div className="calendar-stats">
             <div className="mini-stat">
-              <span className="mini-stat-value mono">{stats.totalMonthHours.toFixed(1)}h</span>
+              <span className="mini-stat-value mono">
+                {stats.totalMonthHours.toFixed(1)}h
+              </span>
               <span className="mini-stat-label">Total Hours</span>
             </div>
             <div className="mini-stat">
-              <span className="mini-stat-value mono">{stats.totalDaysWorked}</span>
+              <span className="mini-stat-value mono">
+                {stats.totalDaysWorked}
+              </span>
               <span className="mini-stat-label">Days Worked</span>
             </div>
             <div className="mini-stat">
-              <span className="mini-stat-value mono">{stats.avgHoursPerDay.toFixed(1)}h</span>
+              <span className="mini-stat-value mono">
+                {stats.avgHoursPerDay.toFixed(1)}h
+              </span>
               <span className="mini-stat-label">Avg / Day</span>
             </div>
           </div>
-          {/* "Add Past Day Record" button → opens modal */}
-          <button
-            className="btn-add-record"
-            onClick={() => setShowManualModal(true)}
-          >
-            📋 Add Past Day Record
-          </button>
+          {/* Hide Manual Entry Button for Admins viewing other users */}
+          {!adminUserId && (
+            <button
+              className="btn-add-record"
+              onClick={() => setShowManualModal(true)}
+            >
+              Add Past Day Record
+            </button>
+          )}
         </div>
       </div>
 
       {/* Full-width Calendar */}
-      <div className="glass-card calendar-wrapper animate-in" style={{ position: "relative" }}>
+      <div
+        className="glass-card calendar-wrapper animate-in"
+        style={{ position: "relative" }}
+      >
         {dataLoading && (
           <div className="calendar-data-loading">
             <div className="spinner" />
@@ -241,7 +285,9 @@ export default function CalendarClient({ initialEvents }: CalendarClientProps) {
             const summary = dailySummaryMap[dateStr];
             return (
               <div className="fc-day-cell-inner">
-                <span className="fc-daygrid-day-number">{arg.dayNumberText}</span>
+                <span className="fc-daygrid-day-number">
+                  {arg.dayNumberText}
+                </span>
                 {summary && summary.workMs > 60000 && (
                   <div className="day-cell-summary">
                     {summary.hasActive && (
@@ -249,7 +295,9 @@ export default function CalendarClient({ initialEvents }: CalendarClientProps) {
                     )}
                     <span className="dcs-work">⏱ {msFmt(summary.workMs)}</span>
                     {summary.breakMs > 60000 && (
-                      <span className="dcs-break">☕ {msFmt(summary.breakMs)}</span>
+                      <span className="dcs-break">
+                        ☕ {msFmt(summary.breakMs)}
+                      </span>
                     )}
                   </div>
                 )}
@@ -273,23 +321,37 @@ export default function CalendarClient({ initialEvents }: CalendarClientProps) {
           date={dayModalDate}
           events={events}
           onClose={() => setDayModalDate(null)}
-          onRefresh={() => { fetchLogs(); setDayModalDate(null); }}
+          onRefresh={() => {
+            fetchLogs();
+            setDayModalDate(null);
+          }}
         />
       )}
 
       {/* Manual Past-Day Entry Modal */}
       {showManualModal && (
-        <div className="modal-overlay" onClick={() => setShowManualModal(false)}>
+        <div
+          className="modal-overlay"
+          onClick={() => setShowManualModal(false)}
+        >
           <div
             className="manual-entry-modal-card animate-in"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="manual-entry-modal-header">
               <span />
-              <button className="modal-close" onClick={() => setShowManualModal(false)}>✕</button>
+              <button
+                className="modal-close"
+                onClick={() => setShowManualModal(false)}
+              >
+                ✕
+              </button>
             </div>
             <ManualEntryPanel
-              onRefresh={() => { fetchLogs(); setShowManualModal(false); }}
+              onRefresh={() => {
+                fetchLogs();
+                setShowManualModal(false);
+              }}
             />
           </div>
         </div>
