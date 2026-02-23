@@ -6,10 +6,26 @@ import { RiSunLine, RiMoonClearLine, RiComputerLine } from "@remixicon/react";
 export default function ThemeToggle() {
   const { theme, setTheme } = useTheme();
 
-  const modes: Array<{ value: "light" | "dark" | "system"; icon: React.ReactNode; label: string }> = [
-    { value: "light", icon: <RiSunLine className="theme-btn-icon" size={16} />, label: "Light" },
-    { value: "dark", icon: <RiMoonClearLine className="theme-btn-icon" size={16} />, label: "Dark" },
-    { value: "system", icon: <RiComputerLine className="theme-btn-icon" size={16} />, label: "System" },
+  const modes: Array<{
+    value: "light" | "dark" | "system";
+    icon: React.ReactNode;
+    label: string;
+  }> = [
+    {
+      value: "light",
+      icon: <RiSunLine className="theme-btn-icon" size={16} />,
+      label: "Light",
+    },
+    {
+      value: "dark",
+      icon: <RiMoonClearLine className="theme-btn-icon" size={16} />,
+      label: "Dark",
+    },
+    {
+      value: "system",
+      icon: <RiComputerLine className="theme-btn-icon" size={16} />,
+      label: "System",
+    },
   ];
 
   return (

@@ -11,25 +11,28 @@ import {
   RiLockPasswordLine,
   RiEyeOffLine,
   RiEyeLine,
-  RiRefreshLine
+  RiRefreshLine,
 } from "@remixicon/react";
 
 export default function SettingsClient() {
   const { data: session } = useSession();
-  
+
   const [name, setName] = useState("");
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
-  
+
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  
+
   const [showCurrentPassword, setShowCurrentPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  
+
   const [profileMessage, setProfileMessage] = useState({ type: "", text: "" });
-  const [passwordMessage, setPasswordMessage] = useState({ type: "", text: "" });
+  const [passwordMessage, setPasswordMessage] = useState({
+    type: "",
+    text: "",
+  });
 
   const [isLoadingProfile, setIsLoadingProfile] = useState(true);
   const [isSavingProfile, setIsSavingProfile] = useState(false);
@@ -67,16 +70,25 @@ export default function SettingsClient() {
       });
 
       if (res.ok) {
-        setProfileMessage({ type: "success", text: "Profile updated successfully!" });
+        setProfileMessage({
+          type: "success",
+          text: "Profile updated successfully!",
+        });
         // Ask for permissions if toggled on
         if (notificationsEnabled && "Notification" in window) {
-            if (Notification.permission !== "granted" && Notification.permission !== "denied") {
-                Notification.requestPermission();
-            }
+          if (
+            Notification.permission !== "granted" &&
+            Notification.permission !== "denied"
+          ) {
+            Notification.requestPermission();
+          }
         }
       } else {
         const data = await res.json();
-        setProfileMessage({ type: "error", text: data.error || "Failed to update profile." });
+        setProfileMessage({
+          type: "error",
+          text: data.error || "Failed to update profile.",
+        });
       }
     } catch {
       setProfileMessage({ type: "error", text: "Network error occurred." });
@@ -91,13 +103,19 @@ export default function SettingsClient() {
     setPasswordMessage({ type: "", text: "" });
 
     if (newPassword !== confirmPassword) {
-      setPasswordMessage({ type: "error", text: "New passwords do not match." });
+      setPasswordMessage({
+        type: "error",
+        text: "New passwords do not match.",
+      });
       setIsSavingPassword(false);
       return;
     }
 
     if (newPassword.length < 6) {
-      setPasswordMessage({ type: "error", text: "New password must be at least 6 characters." });
+      setPasswordMessage({
+        type: "error",
+        text: "New password must be at least 6 characters.",
+      });
       setIsSavingPassword(false);
       return;
     }
@@ -110,13 +128,19 @@ export default function SettingsClient() {
       });
 
       if (res.ok) {
-        setPasswordMessage({ type: "success", text: "Password changed successfully!" });
+        setPasswordMessage({
+          type: "success",
+          text: "Password changed successfully!",
+        });
         setCurrentPassword("");
         setNewPassword("");
         setConfirmPassword("");
       } else {
         const data = await res.json();
-        setPasswordMessage({ type: "error", text: data.error || "Failed to change password." });
+        setPasswordMessage({
+          type: "error",
+          text: data.error || "Failed to change password.",
+        });
       }
     } catch {
       setPasswordMessage({ type: "error", text: "Network error occurred." });
@@ -147,21 +171,28 @@ export default function SettingsClient() {
             <RiUserSettingsLine size={24} />
             <h2>Profile Details</h2>
           </div>
-          
+
           <form className="settings-form" onSubmit={handleProfileSubmit}>
             {profileMessage.text && (
               <div className={`dm-message dm-message-${profileMessage.type}`}>
-                {profileMessage.type === "error" 
-                  ? <RiErrorWarningLine className="dm-msg-icon" size={18} /> 
-                  : <RiCheckboxCircleLine className="dm-msg-icon" size={18} />
-                }
+                {profileMessage.type === "error" ? (
+                  <RiErrorWarningLine className="dm-msg-icon" size={18} />
+                ) : (
+                  <RiCheckboxCircleLine className="dm-msg-icon" size={18} />
+                )}
                 {profileMessage.text}
               </div>
             )}
 
             <div className="form-group">
               <label htmlFor="email">Email</label>
-              <input type="email" id="email" value={session?.user?.email || ""} disabled className="input-disabled" />
+              <input
+                type="email"
+                id="email"
+                value={session?.user?.email || ""}
+                disabled
+                className="input-disabled"
+              />
               <span className="input-hint">Email cannot be changed</span>
             </div>
 
@@ -182,15 +213,17 @@ export default function SettingsClient() {
               <RiNotification3Line size={24} />
               <h2>Notifications</h2>
             </div>
-            
+
             <label className="toggle-switch-card">
               <div className="toggle-info">
                 <span className="toggle-title">Desktop Notifications</span>
-                <span className="toggle-desc">Get alerted when your workday is complete and OT begins.</span>
+                <span className="toggle-desc">
+                  Get alerted when your workday is complete and OT begins.
+                </span>
               </div>
               <div className="toggle-wrapper">
-                <input 
-                  type="checkbox" 
+                <input
+                  type="checkbox"
                   className="toggle-checkbox"
                   checked={notificationsEnabled}
                   onChange={(e) => setNotificationsEnabled(e.target.checked)}
@@ -199,8 +232,18 @@ export default function SettingsClient() {
               </div>
             </label>
 
-            <button type="submit" className="btn-primary" disabled={isSavingProfile}>
-              {isSavingProfile ? <span className="spinner"></span> : <><RiSaveLine size={18} /> Save Profile</>}
+            <button
+              type="submit"
+              className="btn-primary"
+              disabled={isSavingProfile}
+            >
+              {isSavingProfile ? (
+                <span className="spinner"></span>
+              ) : (
+                <>
+                  <RiSaveLine size={18} /> Save Profile
+                </>
+              )}
             </button>
           </form>
         </div>
@@ -211,14 +254,15 @@ export default function SettingsClient() {
             <RiLockPasswordLine size={24} />
             <h2>Security</h2>
           </div>
-          
+
           <form className="settings-form" onSubmit={handlePasswordSubmit}>
             {passwordMessage.text && (
               <div className={`dm-message dm-message-${passwordMessage.type}`}>
-                {passwordMessage.type === "error" 
-                  ? <RiErrorWarningLine className="dm-msg-icon" size={18} /> 
-                  : <RiCheckboxCircleLine className="dm-msg-icon" size={18} />
-                }
+                {passwordMessage.type === "error" ? (
+                  <RiErrorWarningLine className="dm-msg-icon" size={18} />
+                ) : (
+                  <RiCheckboxCircleLine className="dm-msg-icon" size={18} />
+                )}
                 {passwordMessage.text}
               </div>
             )}
@@ -239,7 +283,11 @@ export default function SettingsClient() {
                   onClick={() => setShowCurrentPassword(!showCurrentPassword)}
                   aria-label="Toggle current password visibility"
                 >
-                  {showCurrentPassword ? <RiEyeOffLine size={18} /> : <RiEyeLine size={18} />}
+                  {showCurrentPassword ? (
+                    <RiEyeOffLine size={18} />
+                  ) : (
+                    <RiEyeLine size={18} />
+                  )}
                 </button>
               </div>
             </div>
@@ -261,7 +309,11 @@ export default function SettingsClient() {
                   onClick={() => setShowNewPassword(!showNewPassword)}
                   aria-label="Toggle new password visibility"
                 >
-                  {showNewPassword ? <RiEyeOffLine size={18} /> : <RiEyeLine size={18} />}
+                  {showNewPassword ? (
+                    <RiEyeOffLine size={18} />
+                  ) : (
+                    <RiEyeLine size={18} />
+                  )}
                 </button>
               </div>
             </div>
@@ -283,13 +335,27 @@ export default function SettingsClient() {
                   onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                   aria-label="Toggle confirm password visibility"
                 >
-                  {showConfirmPassword ? <RiEyeOffLine size={18} /> : <RiEyeLine size={18} />}
+                  {showConfirmPassword ? (
+                    <RiEyeOffLine size={18} />
+                  ) : (
+                    <RiEyeLine size={18} />
+                  )}
                 </button>
               </div>
             </div>
 
-            <button type="submit" className="btn-secondary" disabled={isSavingPassword}>
-              {isSavingPassword ? <span className="spinner"></span> : <><RiRefreshLine size={18} /> Update Password</>}
+            <button
+              type="submit"
+              className="btn-secondary"
+              disabled={isSavingPassword}
+            >
+              {isSavingPassword ? (
+                <span className="spinner"></span>
+              ) : (
+                <>
+                  <RiRefreshLine size={18} /> Update Password
+                </>
+              )}
             </button>
           </form>
         </div>

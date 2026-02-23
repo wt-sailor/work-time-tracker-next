@@ -13,8 +13,10 @@ model User {
   name                 String?
   email                String      @unique
   password             String
+  isAdmin              Boolean     @default(false)
   notificationsEnabled Boolean     @default(true)
   workLogs             WorkLog[]
+  notifications        Notification[]
   timerState           TimerState?
   createdAt  DateTime    @default(now())
 }
@@ -50,4 +52,16 @@ model TimerState {
   status             String   @default("idle")
   logs               Json     @default("[]")
   updatedAt          DateTime @updatedAt
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  message   String
+  type      String   // "ONE_TIME" or "ALL_TIME"
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([userId, isRead])
 }

@@ -4,6 +4,7 @@ import SessionProvider from "@/components/SessionProvider";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import "./globals.scss";
 import Navbar from "@/components/Navbar";
+import NotificationBanner from "@/components/NotificationBanner";
 
 const poppins = Poppins({
   subsets: ["latin"],
@@ -58,6 +59,7 @@ export default function RootLayout({
           <ThemeProvider>
             <div className="app-shell">
               <Navbar />
+              <NotificationBanner />
               {children}
             </div>
           </ThemeProvider>
